@@ -6,8 +6,8 @@ from PIL import Image
 from torch.utils.data import DataLoader
 import os
 
-train_path = 'C:\\Users\\Galina\\PycharmProjects\\cnn1\\tarelki\\train\\'
-test_path = 'C:\\Users\\Galina\\PycharmProjects\\cnn1\\tarelki\\test\\'
+train_path = 'C:\\Users\\air_catcher\\PycharmProjects\\cnn1\\tarelki\\train\\'
+test_path = 'C:\\Users\\air_catcher\\PycharmProjects\\cnn1\\tarelki\\test\\'
 
 num_epochs = 20
 num_classes = 2
