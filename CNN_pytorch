@@ -1,0 +1,106 @@
+import torch
+import torchvision.transforms as transforms
+import torchvision.datasets
+import torch.nn as nn
+from PIL import Image
+from torch.utils.data import DataLoader
+import os
+
+train_path = 'C:\\Users\\Galina\\PycharmProjects\\cnn1\\tarelki\\train\\'
+test_path = 'C:\\Users\\Galina\\PycharmProjects\\cnn1\\tarelki\\test\\'
+
+num_epochs = 20
+num_classes = 2
+batch_size = 4
+learning_rate = 0.001
+
+#transform
+
+trans = transforms.Compose([
+    transforms.RandomResizedCrop(300),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+        transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+])
+
+#train data
+train_dataset = torchvision.datasets.ImageFolder(train_path, transform=trans)
+#test_dataset = torchvision.datasets.ImageFolder(test_path, transform=trans)
+
+# Data loader
+train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+#test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
+
+# Hyperparameters
+
+class ConvNet(nn.Module):
+    def __init__(self):
+        super(ConvNet, self).__init__()
+        self.layer1 = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=5, stride=2, padding=2),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2))
+        self.layer2 = nn.Sequential(
+            nn.Conv2d(32, 64, kernel_size=5, stride=1, padding=2),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2))
+        self.drop_out = nn.Dropout()
+        self.fc1 = nn.Linear(87616, 1000)
+        self.fc2 = nn.Linear(1000, 10)
+
+    def forward(self, x):
+        out = self.layer1(x)
+        out = self.layer2(out)
+        out = out.reshape(out.size(0), -1)
+        out = self.drop_out(out)
+        out = self.fc1(out)
+        out = self.fc2(out)
+        return out
+
+
+model = ConvNet()
+
+
+# Loss and optimizer
+criterion = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+# Train the model
+total_step = len(train_loader)
+loss_list = []
+acc_list = []
+#model.train()
+for epoch in range(num_epochs):
+    for i, (images, labels) in enumerate(train_loader):
+        # Run the forward pass
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+        loss_list.append(loss.item())
+
+        # Backprop and perform Adam optimisation
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        # Track the accuracy
+        total = labels.size(0)
+        _, predicted = torch.max(outputs.data, 1)
+        correct = (predicted == labels).sum().item()
+        acc_list.append(correct / total)
+
+        if (i + 1) % 10 == 0:
+            print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.2f}%'
+                  .format(epoch + 1, num_epochs, i + 1, total_step, loss.item(),
+                          (correct / total) * 100))
+
+model.eval()
+classes = ['cleaned', 'dirty']
+with open('result.csv', 'w', ) as result_file:
+    result_file.write('id,label\n')
+    for file in os.listdir(test_path):
+        image = Image.open(os.path.join(test_path, file))
+        image = trans(image).unsqueeze(0)
+        outputs = model(image)
+        _, predicted = torch.max(outputs, 1)
+        result_file.write(os.path.splitext(file)[0]+','+classes[predicted[0].data.squeeze().item()]+'\n')
+        #print('result for' + file + ': ' + classes[predicted[0].data.squeeze().item()])
