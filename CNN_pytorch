@@ -6,18 +6,18 @@ from PIL import Image
 from torch.utils.data import DataLoader
 import os
 
-train_path = 'C:\\Users\\air_catcher\\PycharmProjects\\cnn1\\tarelki\\train\\'
-test_path = 'C:\\Users\\air_catcher\\PycharmProjects\\cnn1\\tarelki\\test\\'
+train_path = 'C:\\Users\\air_catcher\\PycharmProjects\\cnnprimer\\tarelki\\train\\'
+test_path = 'C:\\Users\\air_catcher\\PycharmProjects\\cnnprimer\\tarelki\\test\\'
 
-num_epochs = 20
+num_epochs = 30
 num_classes = 2
-batch_size = 4
+batch_size = 10
 learning_rate = 0.001
 
 #transform
 
 trans = transforms.Compose([
-    transforms.RandomResizedCrop(300),
+    transforms.CenterCrop(200),  #сюда можно пробовать Resize(), CenterCrop(), RandomCropSize()
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
         transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
@@ -26,6 +26,7 @@ trans = transforms.Compose([
 #train data
 train_dataset = torchvision.datasets.ImageFolder(train_path, transform=trans)
 #test_dataset = torchvision.datasets.ImageFolder(test_path, transform=trans)
+print (len(train_dataset[0][0][0]), len(train_dataset[0][0][0][0]))
 
 # Data loader
 train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
@@ -41,11 +42,11 @@ class ConvNet(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2))
         self.layer2 = nn.Sequential(
-            nn.Conv2d(32, 64, kernel_size=5, stride=1, padding=2),
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=2),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2))
         self.drop_out = nn.Dropout()
-        self.fc1 = nn.Linear(87616, 1000)
+        self.fc1 = nn.Linear(43264, 1000)
         self.fc2 = nn.Linear(1000, 10)
 
     def forward(self, x):
@@ -88,7 +89,7 @@ for epoch in range(num_epochs):
         correct = (predicted == labels).sum().item()
         acc_list.append(correct / total)
 
-        if (i + 1) % 10 == 0:
+        if (i + 1) % 1 == 0:
             print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.2f}%'
                   .format(epoch + 1, num_epochs, i + 1, total_step, loss.item(),
                           (correct / total) * 100))
