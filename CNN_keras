@@ -1,0 +1,95 @@
+import os
+import keras
+from keras.preprocessing.image import ImageDataGenerator
+from keras.models import Sequential
+from keras.layers import Conv2D, MaxPooling2D
+from keras.layers import Activation, Dropout, Flatten, Dense
+from keras.preprocessing import image
+import numpy as np
+
+train_dir = 'C:\\Users\\Galina\\PycharmProjects\\cnn1\\tarelki\\train\\'
+test_dir = 'C:\\Users\\Galina\\PycharmProjects\\cnn1\\tarelki\\test\\'
+
+#test_data_portion = 0.8
+#val_data_portion = 0.15
+
+img_width, img_height = 150, 150
+input_shape = (img_width, img_height, 3)
+
+#количество эпох
+epochs = 20
+batch_size = 10
+#nb_train_samples = 40
+
+#загуржаем данные
+train_datagen = ImageDataGenerator(
+        rescale=1. / 255,
+        shear_range=0.1,
+        zoom_range=0.1,
+        horizontal_flip=True)
+
+
+
+train_generator = train_datagen.flow_from_directory(
+        train_dir,
+        target_size=(150, 150),
+        batch_size=batch_size,
+        class_mode='binary')
+nb_train_samples = len(train_generator.filenames)
+print('nb_train_samples: ', nb_train_samples)
+
+#определяем модель сети
+model = Sequential()
+model.add(Conv2D(32, kernel_size=(5, 5), input_shape=input_shape))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+
+model.add(Conv2D(32, kernel_size=(3, 3)))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+
+model.add(Conv2D(64, kernel_size=(3, 3)))
+model.add(Activation('relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+
+model.add(Flatten())
+model.add(Dense(64))
+model.add(Activation('relu'))
+model.add(Dropout(0.3))
+model.add(Dense(1))
+model.add(Activation('sigmoid')) #здесь лучше sigmoid
+
+#компилируем сеть
+model.compile(loss='binary_crossentropy',
+              optimizer='adam',
+              metrics=['accuracy'])
+init_lr=0.001
+
+
+model.fit_generator(train_generator,
+    steps_per_epoch=nb_train_samples / batch_size,
+    epochs=epochs) #// batch_size)
+    #test_data=test_generator,
+    #test_steps=nb_test_samples // batch_size)
+
+
+def load_image(filename):
+    img = image.load_img(filename, target_size=(img_width, img_height))
+    img_tensor = image.img_to_array(img)  # (height, width, channels)
+    img_tensor = np.expand_dims(img_tensor,
+                                axis=0)
+    img_tensor /= 255.
+    return img_tensor
+
+classes = ['cleaned', 'dirty']
+
+
+with open('result.csv', 'w' ) as result_file:
+    result_file.write('id,label\n')
+    for file in os.listdir(test_dir):
+        x = load_image(os.path.join(test_dir, file))
+        predicted = model.predict_classes(x)
+        result_file.write(os.path.splitext(file)[0] +
+                          ',' + classes[predicted[0][0]]
+                          + '\n')
+        #print('file ', file,'contains ', classes[pred[0][0]])
